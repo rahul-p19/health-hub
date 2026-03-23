@@ -4,9 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { generateBotResponse, createMessage, Message } from '@/lib/chatbot-utils'
-import { useFadeInUp } from '@/hooks/useGsap'
 import Button from '@/components/Button'
-import Input from '@/components/Input'
 import MessageComponent from '@/components/chatbot/Message'
 import TypingIndicator from '@/components/chatbot/TypingIndicator'
 import { Card } from '@/components/Card'
@@ -18,7 +16,6 @@ export default function ChatbotPage() {
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const headerRef = useFadeInUp({ delay: 0 })
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -67,7 +64,6 @@ export default function ChatbotPage() {
     <div className="h-screen flex flex-col bg-background">
       {/* Header */}
       <header
-        ref={headerRef as any}
         className="border-b border-border bg-card shadow-sm"
       >
         <div className="max-w-4xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex items-center justify-between">

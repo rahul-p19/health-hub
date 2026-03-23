@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/lib/auth-context'
-import { useFadeInUp } from '@/hooks/useGsap'
 import Button from '@/components/Button'
 import Input from '@/components/Input'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/Card'
@@ -15,7 +14,6 @@ export default function SignIn() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
-  const cardRef = useFadeInUp({ delay: 0 })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -31,7 +29,7 @@ export default function SignIn() {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-background">
-      <Card ref={cardRef as any} className="w-full max-w-md">
+      <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="text-3xl text-center">Welcome Back</CardTitle>
           <CardDescription className="text-center">Sign in to access your health companion</CardDescription>
