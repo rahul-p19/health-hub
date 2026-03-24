@@ -113,12 +113,22 @@ Example:
 - Loading states
 
 ### Chatbot
-- Rule-based response system
+- Gemini-powered symptom analysis responses
+- Token streaming for real-time assistant replies
 - Message history tracking
-- Typing indicator animation
 - Health-related question handling
 - Timestamps for messages
 - Disclaimer about seeking professional help
+
+### Gemini API Setup
+
+Create a local environment file and add your Gemini credentials:
+
+```bash
+GEMINI_API_KEY=your_api_key_here
+# Optional: defaults to gemini-2.0-flash
+GEMINI_MODEL=gemini-2.0-flash
+```
 
 ### Design System
 

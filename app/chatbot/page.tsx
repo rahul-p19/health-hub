@@ -3,15 +3,14 @@
 import { useRouter } from 'next/navigation'
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/lib/auth-context'
-import { generateBotResponse, createMessage, Message } from '@/lib/chatbot-utils'
+import { createMessage, Message, toChatRequestMessages } from '@/lib/chatbot-utils'
 import Button from '@/components/Button'
 import MessageComponent from '@/components/chatbot/Message'
-import TypingIndicator from '@/components/chatbot/TypingIndicator'
 import { Card } from '@/components/Card'
 
 export default function ChatbotPage() {
   const router = useRouter()
-  const { user, signout, isAuthenticated } = useAuth()
+  const { user, signout, isAuthenticated, isLoading: isAuthLoading } = useAuth()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -19,10 +18,10 @@ export default function ChatbotPage() {
 
   // Redirect if not authenticated
   useEffect(() => {
-    if (!isAuthenticated && !useAuth().isLoading) {
+    if (!isAuthenticated && !isAuthLoading) {
       router.push('/signin')
     }
-  }, [isAuthenticated, router])
+  }, [isAuthenticated, isAuthLoading, router])
 
   // Initialize with welcome message
   useEffect(() => {
@@ -44,20 +43,82 @@ export default function ChatbotPage() {
     e.preventDefault()
     if (!input.trim()) return
 
-    // Add user message
-    const userMessage = createMessage('user', input)
-    setMessages((prev) => [...prev, userMessage])
+    const userInput = input.trim()
+    const userMessage = createMessage('user', userInput)
+    const assistantMessage = createMessage('assistant', '')
+    const updatedMessages = [...messages, userMessage, assistantMessage]
+
+    setMessages(updatedMessages)
     setInput('')
-
-    // Simulate bot thinking time
     setIsLoading(true)
-    await new Promise((resolve) => setTimeout(resolve, 800))
 
-    // Generate bot response
-    const botResponse = generateBotResponse(input)
-    const assistantMessage = createMessage('assistant', botResponse)
-    setMessages((prev) => [...prev, assistantMessage])
-    setIsLoading(false)
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: toChatRequestMessages(updatedMessages.filter((message) => message.content.trim())),
+        }),
+      })
+
+      if (!response.ok) {
+        let errorMessage = 'Unable to stream assistant response.'
+
+        try {
+          const errorPayload = (await response.json()) as { error?: string }
+          if (errorPayload.error) {
+            errorMessage = errorPayload.error
+          }
+        } catch {
+          // Ignore JSON parse failures and keep fallback message.
+        }
+
+        throw new Error(errorMessage)
+      }
+
+      if (!response.body) {
+        throw new Error('No response body was received from the chat API.')
+      }
+
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let streamedText = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        streamedText += decoder.decode(value, { stream: true })
+
+        setMessages((prev) =>
+          prev.map((message) =>
+            message.id === assistantMessage.id
+              ? { ...message, content: streamedText }
+              : message
+          )
+        )
+      }
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'I am having trouble reaching the symptom analysis service right now. Please try again shortly.'
+
+      setMessages((prev) =>
+        prev.map((chatMessage) =>
+          chatMessage.id === assistantMessage.id
+            ? {
+                ...chatMessage,
+                content: message,
+              }
+            : chatMessage
+        )
+      )
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -102,11 +163,6 @@ export default function ChatbotPage() {
             {messages.map((message) => (
               <MessageComponent key={message.id} message={message} />
             ))}
-            {isLoading && (
-              <div className="flex justify-start">
-                <TypingIndicator />
-              </div>
-            )}
             <div ref={messagesEndRef} />
           </div>
         </div>
